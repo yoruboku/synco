@@ -1,65 +1,57 @@
-###############################################
-# CLOUDSYNC AUTO INSTALLER (with rclone login)
-# Creates venv, installs deps, forces rclone auth
-###############################################
-
-
-=================================
-WINDOWS INSTALLER (install.bat)
-=================================
-
-
 @echo off
-set APPDIR=%~dp0cloudsync
-if not exist %APPDIR% mkdir %APPDIR%
-cd %APPDIR%
+setlocal ENABLEDELAYEDEXPANSION
 
+REM CloudSync installer for Windows
+REM - Creates venv in current folder
+REM - Installs deps
+REM - Ensures rclone is configured
+REM - Starts main.py
+
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
 
 echo ==========================================
-echo CloudSync Installer - Windows
+echo   CloudSync Installer - Windows
 echo ==========================================
 
-
-echo Creating virtual environment...
+echo [*] Creating virtual environment (.venv)...
 python -m venv venv
+if errorlevel 1 (
+    echo Failed to create venv. Make sure Python is installed and in PATH.
+    pause
+    exit /b 1
+)
 
-
+echo [*] Activating venv...
 call venv\Scripts\activate
 
-
-echo Upgrading pip...
+echo [*] Upgrading pip...
 pip install --upgrade pip
 
-
-echo Installing dependencies...
+echo [*] Installing dependencies...
 pip install flask watchdog
 
-
-echo Checking rclone...
+echo [*] Checking for rclone...
 rclone version >nul 2>&1
 if errorlevel 1 (
-echo Rclone not found. Please install rclone and add it to PATH.
-echo Download: https://rclone.org/downloads/
-pause
-exit
+    echo rclone not found. Install it and add to PATH:
+    echo   https://rclone.org/downloads/
+    pause
+    exit /b 1
 )
 
+set "RCLONE_CONF=%USERPROFILE%\.config\rclone\rclone.conf"
 
 echo ------------------------------------------
-echo Checking rclone configuration...
-set RCLONE_CONF=%USERPROFILE%\.config\rclone\rclone.conf
-
-
-if not exist %RCLONE_CONF% (
-echo No rclone config found.
-echo Opening browser for Google Drive login...
-rclone config
+if not exist "%RCLONE_CONF%" (
+    echo [*] No rclone config found. Running "rclone config"...
+    echo     A browser window will open for Google Drive login.
+    rclone config
 ) else (
-echo Rclone config found. Skipping login.
+    echo [*] rclone already configured. Skipping login.
 )
 
-
 echo ------------------------------------------
-echo Launching CloudSync...
+echo [*] Starting CloudSync (main.py)...
 python main.py
 pause
